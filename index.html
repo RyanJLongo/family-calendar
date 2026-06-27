@@ -631,9 +631,8 @@
               inner += `</div>`;
             }
 
-            if (daysWithEvents.has(day.ds)) {
-              cell.addEventListener('click', () => scrollToEventDate(day.ds));
-            }
+            // Any day click scrolls to nearest upcoming event
+            cell.addEventListener('click', () => scrollToEventDate(day.ds));
           }
         }
 
@@ -746,13 +745,21 @@
     });
     html += `</div>`;
     belowEl.innerHTML = html;
+
+    // Auto-scroll to today on initial load (current month + full view)
+    const t = new Date();
+    if (currentView === 'full' && currentYear === t.getFullYear() && currentMonth === t.getMonth()) {
+      requestAnimationFrame(() => scrollToEventDate(todayStr()));
+    }
   }
 
   function scrollToEventDate(ds) {
-    const group = document.querySelector(`[data-date="${ds}"]`);
-    if (!group) return;
-    group.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    group.querySelectorAll('.event-list-item').forEach(item => {
+    // Find exact match, or next date on/after ds, or fall back to last group
+    const allGroups = [...document.querySelectorAll('#event-list-section .event-list-date-group')];
+    if (!allGroups.length) return;
+    let target = allGroups.find(g => g.dataset.date >= ds) || allGroups[allGroups.length - 1];
+    target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    target.querySelectorAll('.event-list-item').forEach(item => {
       item.classList.add('highlight');
       setTimeout(() => item.classList.remove('highlight'), 600);
     });
