@@ -1,0 +1,554 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+  <title>Longo Family Calendar</title>
+  <link rel="icon" href="/favicon.png" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: #0d1117;
+      color: #e6edf3;
+      font-family: system-ui, -apple-system, sans-serif;
+      min-height: 100vh;
+      padding-bottom: 80px;
+    }
+
+    /* ── Header ── */
+    header {
+      background: #161b22;
+      border-bottom: 1px solid #30363d;
+      text-align: center;
+      padding: 16px 12px 12px;
+    }
+    header h1 {
+      font-size: 1.3rem;
+      font-weight: 700;
+      letter-spacing: 0.01em;
+      color: #e6edf3;
+    }
+
+    /* ── View tabs ── */
+    .tabs {
+      display: flex;
+      gap: 8px;
+      justify-content: center;
+      margin-top: 12px;
+    }
+    .tab {
+      padding: 6px 18px;
+      border-radius: 999px;
+      border: 1px solid #30363d;
+      background: transparent;
+      color: #8b949e;
+      font-size: 0.85rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background 0.15s, color 0.15s, border-color 0.15s;
+    }
+    .tab.active {
+      background: #f97316;
+      border-color: #f97316;
+      color: #fff;
+    }
+
+    /* ── Month nav ── */
+    .month-nav {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+      padding: 14px 16px 10px;
+    }
+    .month-nav button {
+      background: none;
+      border: none;
+      color: #8b949e;
+      font-size: 1.4rem;
+      cursor: pointer;
+      padding: 4px 8px;
+      border-radius: 6px;
+      transition: color 0.15s, background 0.15s;
+      line-height: 1;
+    }
+    .month-nav button:hover { color: #e6edf3; background: #21262d; }
+    .month-nav h2 {
+      font-size: 1.05rem;
+      font-weight: 600;
+      min-width: 160px;
+      text-align: center;
+    }
+
+    /* ── Calendar grid ── */
+    .cal-wrap {
+      padding: 0 8px;
+    }
+    .cal-grid {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 3px;
+    }
+    .day-header {
+      text-align: center;
+      font-size: 0.7rem;
+      font-weight: 600;
+      color: #8b949e;
+      padding: 6px 0;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+    .day-cell {
+      background: #161b22;
+      border: 1px solid #30363d;
+      border-radius: 6px;
+      min-height: 62px;
+      position: relative;
+      overflow: hidden;
+      cursor: default;
+    }
+    .day-cell.empty {
+      background: transparent;
+      border-color: transparent;
+    }
+    .day-cell.other-month {
+      opacity: 0.35;
+    }
+    .day-cell.past .day-num {
+      color: #484f58;
+    }
+
+    /* Full-bleed cell image */
+    .day-cell .cell-img {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      border-radius: 5px;
+    }
+
+    /* Nurse strip in Full view when stacked */
+    .nurse-strip {
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 6px;
+      background: #f48fb1;
+      z-index: 2;
+    }
+
+    /* Custody bg color (no image fallback) */
+    .day-cell.dad-night { background: #e0f7fa; }
+    .day-cell.mom-night { background: #f3e5f5; }
+    .day-cell.nurse-only { background: #fce4ec; }
+
+    /* For dark cells with images, text needs shadow */
+    .day-num {
+      position: relative;
+      z-index: 3;
+      display: inline-block;
+      font-size: 0.7rem;
+      font-weight: 600;
+      color: #e6edf3;
+      margin: 4px 0 0 5px;
+      text-shadow: 0 1px 3px rgba(0,0,0,0.7);
+      line-height: 1;
+    }
+    .day-cell.dad-night .day-num,
+    .day-cell.mom-night .day-num,
+    .day-cell.nurse-only .day-num {
+      color: #1c2128;
+      text-shadow: none;
+    }
+
+    /* Today indicator */
+    .today-dot {
+      position: absolute;
+      top: 4px;
+      right: 5px;
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: #f97316;
+      z-index: 4;
+    }
+
+    /* Family events */
+    .events-layer {
+      position: absolute;
+      bottom: 3px;
+      left: 3px;
+      right: 3px;
+      z-index: 4;
+      display: flex;
+      flex-direction: column;
+      gap: 1px;
+      align-items: flex-start;
+    }
+    .event-chip {
+      font-size: 0.6rem;
+      font-weight: 600;
+      line-height: 1.3;
+      padding: 1px 3px;
+      border-radius: 3px;
+      background: rgba(249,115,22,0.85);
+      color: #fff;
+      max-width: 100%;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      backdrop-filter: blur(2px);
+    }
+
+    /* ── Loading / empty ── */
+    .spinner-wrap {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 60px 0;
+    }
+    .spinner {
+      width: 32px;
+      height: 32px;
+      border: 3px solid #30363d;
+      border-top-color: #f97316;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .no-data {
+      text-align: center;
+      color: #8b949e;
+      padding: 40px 16px;
+      font-size: 0.9rem;
+    }
+
+    /* ── Legend ── */
+    .legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      justify-content: center;
+      padding: 20px 16px 0;
+    }
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.75rem;
+      color: #8b949e;
+    }
+    .legend-swatch {
+      width: 14px;
+      height: 14px;
+      border-radius: 3px;
+      flex-shrink: 0;
+    }
+    .legend-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    @media (min-width: 480px) {
+      .day-cell { min-height: 72px; }
+      header h1 { font-size: 1.5rem; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>Longo Family Calendar</h1>
+  <div class="tabs">
+    <button class="tab active" data-view="nurse" onclick="setView('nurse')">Nurse</button>
+    <button class="tab" data-view="nights" onclick="setView('nights')">Nights</button>
+    <button class="tab" data-view="full" onclick="setView('full')">Full</button>
+  </div>
+</header>
+
+<div class="month-nav">
+  <button onclick="changeMonth(-1)" aria-label="Previous month">&#8249;</button>
+  <h2 id="month-label"></h2>
+  <button onclick="changeMonth(1)" aria-label="Next month">&#8250;</button>
+</div>
+
+<div class="cal-wrap">
+  <div class="cal-grid" id="day-headers">
+    <div class="day-header">Sun</div>
+    <div class="day-header">Mon</div>
+    <div class="day-header">Tue</div>
+    <div class="day-header">Wed</div>
+    <div class="day-header">Thu</div>
+    <div class="day-header">Fri</div>
+    <div class="day-header">Sat</div>
+  </div>
+  <div class="cal-grid" id="cal-body"></div>
+</div>
+
+<div class="legend">
+  <div class="legend-item">
+    <div class="legend-swatch" style="background:#f3e5f5;border:1px solid #30363d"></div>
+    Mom's Night
+  </div>
+  <div class="legend-item">
+    <div class="legend-swatch" style="background:#e0f7fa;border:1px solid #30363d"></div>
+    Dad's Night
+  </div>
+  <div class="legend-item">
+    <div class="legend-swatch" style="background:#fce4ec;border:1px solid #30363d"></div>
+    Nurse Day
+  </div>
+  <div class="legend-item">
+    <div class="legend-dot" style="background:#f97316"></div>
+    Family Event / Today
+  </div>
+</div>
+
+<script type="module">
+  import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
+
+  const SUPABASE_URL = 'https://lamkfkstsfuyrnffitht.supabase.co';
+  const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxhbWtma3N0c2Z1eXJuZmZpdGh0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI1MDMwMjIsImV4cCI6MjA5ODA3OTAyMn0.-AhMxeMiTdT1QWwNcNssDKDQ3EiKJfhYoqEkyAiak20';
+  const supabase = createClient(SUPABASE_URL, SUPABASE_ANON);
+
+  // ── State ──────────────────────────────────────────────────────────────────
+  const now = new Date();
+  let currentYear = now.getFullYear();
+  let currentMonth = now.getMonth(); // 0-indexed
+  let currentView = 'nurse';
+
+  // Cached data per month key "YYYY-MM"
+  const cache = {};
+
+  // ── Helpers ────────────────────────────────────────────────────────────────
+  function pad(n) { return String(n).padStart(2, '0'); }
+  function dateStr(y, m, d) { return `${y}-${pad(m+1)}-${pad(d)}`; }
+  function todayStr() {
+    const t = new Date();
+    return dateStr(t.getFullYear(), t.getMonth(), t.getDate());
+  }
+
+  function monthKey(y, m) { return `${y}-${pad(m+1)}`; }
+
+  function monthLabel(y, m) {
+    return new Date(y, m, 1).toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+  }
+
+  // ── Data fetching ──────────────────────────────────────────────────────────
+  async function fetchMonth(year, month) {
+    const key = monthKey(year, month);
+    if (cache[key]) return cache[key];
+
+    const firstDay = dateStr(year, month, 1);
+    const lastDay = dateStr(year, month, new Date(year, month + 1, 0).getDate());
+
+    const [custRes, nurseRes, eventsRes] = await Promise.all([
+      supabase.from('family_custody').select('date,custody').gte('date', firstDay).lte('date', lastDay),
+      supabase.from('family_nurse_days').select('date').gte('date', firstDay).lte('date', lastDay),
+      supabase.from('family_events').select('*').lte('start_date', lastDay).gte('end_date', firstDay),
+    ]);
+
+    const custody = {};
+    (custRes.data || []).forEach(r => { custody[r.date] = r.custody; });
+
+    const nurseDays = new Set((nurseRes.data || []).map(r => r.date));
+
+    const events = eventsRes.data || [];
+
+    const data = { custody, nurseDays, events };
+    cache[key] = data;
+    return data;
+  }
+
+  // ── Render ─────────────────────────────────────────────────────────────────
+  function setView(v) {
+    currentView = v;
+    document.querySelectorAll('.tab').forEach(t => {
+      t.classList.toggle('active', t.dataset.view === v);
+    });
+    renderCalendar();
+  }
+  window.setView = setView;
+
+  function changeMonth(delta) {
+    currentMonth += delta;
+    if (currentMonth > 11) { currentMonth = 0; currentYear++; }
+    if (currentMonth < 0) { currentMonth = 11; currentYear--; }
+    renderCalendar();
+  }
+  window.changeMonth = changeMonth;
+
+  async function renderCalendar() {
+    const body = document.getElementById('cal-body');
+    document.getElementById('month-label').textContent = monthLabel(currentYear, currentMonth);
+
+    // Show spinner
+    body.innerHTML = `<div style="grid-column:1/-1"><div class="spinner-wrap"><div class="spinner"></div></div></div>`;
+
+    let data;
+    try {
+      data = await fetchMonth(currentYear, currentMonth);
+    } catch(e) {
+      body.innerHTML = `<div style="grid-column:1/-1"><p class="no-data">Failed to load data. Please try again.</p></div>`;
+      return;
+    }
+
+    const { custody, nurseDays, events } = data;
+    const today = todayStr();
+
+    // Check if any data at all
+    const hasData = Object.keys(custody).length > 0 || nurseDays.size > 0 || events.length > 0;
+
+    // Build day → events map
+    const eventsByDay = {};
+    events.forEach(ev => {
+      // Bar events span multiple days
+      const start = new Date(ev.start_date + 'T00:00:00');
+      const end = new Date(ev.end_date + 'T00:00:00');
+      const cur = new Date(start);
+      while (cur <= end) {
+        const ds = cur.toISOString().slice(0, 10);
+        if (!eventsByDay[ds]) eventsByDay[ds] = [];
+        eventsByDay[ds].push(ev);
+        cur.setDate(cur.getDate() + 1);
+      }
+    });
+
+    // Build calendar days
+    const firstOfMonth = new Date(currentYear, currentMonth, 1);
+    const lastOfMonth = new Date(currentYear, currentMonth + 1, 0);
+    const startDow = firstOfMonth.getDay(); // 0=Sun
+    const daysInMonth = lastOfMonth.getDate();
+
+    const cells = [];
+
+    // Leading empty cells
+    for (let i = 0; i < startDow; i++) {
+      cells.push({ empty: true });
+    }
+
+    // Day cells
+    for (let d = 1; d <= daysInMonth; d++) {
+      const ds = dateStr(currentYear, currentMonth, d);
+      const isToday = ds === today;
+      const isPast = ds < today;
+      const custodyVal = custody[ds]; // 'mom' | 'dad' | undefined
+      const isNurse = nurseDays.has(ds);
+      const dayEvents = eventsByDay[ds] || [];
+
+      cells.push({ d, ds, isToday, isPast, custodyVal, isNurse, dayEvents });
+    }
+
+    if (!hasData) {
+      body.innerHTML = `<div style="grid-column:1/-1"><p class="no-data">No data synced yet.<br>Open FoxHole → Admin → Sync Family Calendar.</p></div>`;
+      return;
+    }
+
+    body.innerHTML = '';
+    cells.forEach(cell => {
+      const el = document.createElement('div');
+      if (cell.empty) {
+        el.className = 'day-cell empty';
+        body.appendChild(el);
+        return;
+      }
+
+      const { d, ds, isToday, isPast, custodyVal, isNurse, dayEvents } = cell;
+      const classes = ['day-cell'];
+      if (isPast) classes.push('past');
+
+      let showCustodyImg = false;
+      let showNurseImg = false;
+      let showNurseStrip = false;
+      let cellBgClass = '';
+
+      if (currentView === 'nurse') {
+        if (isNurse) {
+          showNurseImg = true;
+          classes.push('nurse-only');
+        }
+      } else if (currentView === 'nights') {
+        if (custodyVal === 'dad') {
+          showCustodyImg = true;
+          classes.push('dad-night');
+        } else if (custodyVal === 'mom') {
+          showCustodyImg = true;
+          classes.push('mom-night');
+        }
+      } else {
+        // Full view
+        if (isNurse && custodyVal) {
+          // Stacked: custody image fills cell, nurse strip at top
+          showCustodyImg = true;
+          showNurseStrip = true;
+          classes.push(custodyVal === 'dad' ? 'dad-night' : 'mom-night');
+        } else if (isNurse) {
+          showNurseImg = true;
+          classes.push('nurse-only');
+        } else if (custodyVal === 'dad') {
+          showCustodyImg = true;
+          classes.push('dad-night');
+        } else if (custodyVal === 'mom') {
+          showCustodyImg = true;
+          classes.push('mom-night');
+        }
+      }
+
+      el.className = classes.join(' ');
+      let inner = '';
+
+      // Custody image
+      if (showCustodyImg) {
+        const imgSrc = custodyVal === 'dad' ? '/dad-night.png' : '/mom-night.png';
+        inner += `<img class="cell-img" src="${imgSrc}" alt="" onerror="this.style.display='none'" />`;
+      }
+
+      // Nurse image (only when not stacked)
+      if (showNurseImg) {
+        inner += `<img class="cell-img" src="/nurse-day.png" alt="" onerror="this.style.display='none'" />`;
+      }
+
+      // Nurse strip (stacked full view)
+      if (showNurseStrip) {
+        inner += `<div class="nurse-strip"></div>`;
+      }
+
+      // Date number
+      inner += `<span class="day-num">${d}</span>`;
+
+      // Today dot
+      if (isToday) {
+        inner += `<div class="today-dot"></div>`;
+      }
+
+      // Events (full view only)
+      if (currentView === 'full' && dayEvents.length > 0) {
+        inner += `<div class="events-layer">`;
+        dayEvents.slice(0, 3).forEach(ev => {
+          const bg = ev.color ? ev.color + 'cc' : 'rgba(249,115,22,0.85)';
+          inner += `<div class="event-chip" style="background:${bg}">${escHtml(ev.title)}</div>`;
+        });
+        if (dayEvents.length > 3) {
+          inner += `<div class="event-chip" style="background:rgba(139,148,158,0.7)">+${dayEvents.length - 3} more</div>`;
+        }
+        inner += `</div>`;
+      }
+
+      el.innerHTML = inner;
+      body.appendChild(el);
+    });
+  }
+
+  function escHtml(s) {
+    return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  // ── Boot ───────────────────────────────────────────────────────────────────
+  renderCalendar();
+</script>
+</body>
+</html>
