@@ -13,21 +13,55 @@
       color: #e6edf3;
       font-family: system-ui, -apple-system, sans-serif;
       min-height: 100vh;
-      padding-bottom: 80px;
+      padding-bottom: 100px;
     }
 
     /* ── Header ── */
     header {
       background: #161b22;
       border-bottom: 1px solid #30363d;
-      text-align: center;
-      padding: 16px 12px 12px;
+      padding: 14px 12px 12px;
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
     header h1 {
       font-size: 1.3rem;
       font-weight: 700;
       letter-spacing: 0.01em;
       color: #e6edf3;
+      text-align: center;
+    }
+    #camera-btn {
+      position: absolute;
+      right: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      background: none;
+      border: none;
+      cursor: pointer;
+      color: #8b949e;
+      font-size: 1.4rem;
+      padding: 6px;
+      border-radius: 6px;
+      transition: color 0.15s, background 0.15s;
+      line-height: 1;
+    }
+    #camera-btn:hover { color: #e6edf3; background: #21262d; }
+    #saving-indicator {
+      display: none;
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: rgba(22, 27, 34, 0.95);
+      border: 1px solid #30363d;
+      border-radius: 10px;
+      padding: 16px 28px;
+      font-size: 0.95rem;
+      color: #e6edf3;
+      z-index: 9999;
     }
 
     /* ── View tabs ── */
@@ -35,7 +69,7 @@
       display: flex;
       gap: 8px;
       justify-content: center;
-      margin-top: 12px;
+      padding: 12px 12px 0;
     }
     .tab {
       padding: 6px 18px;
@@ -81,42 +115,60 @@
       text-align: center;
     }
 
-    /* ── Calendar grid ── */
+    /* ── Calendar wrapper ── */
     .cal-wrap {
       padding: 0 8px;
+      touch-action: pan-y;
     }
-    .cal-grid {
+
+    /* ── Day header row ── */
+    .day-headers {
       display: grid;
       grid-template-columns: repeat(7, 1fr);
       gap: 3px;
+      margin-bottom: 3px;
     }
     .day-header {
       text-align: center;
-      font-size: 0.7rem;
+      font-size: 0.68rem;
       font-weight: 600;
       color: #8b949e;
-      padding: 6px 0;
+      padding: 5px 0;
       text-transform: uppercase;
       letter-spacing: 0.04em;
     }
+
+    /* ── Calendar weeks container (for bar event overlay) ── */
+    #cal-weeks {
+      position: relative;
+    }
+    .week-row {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 3px;
+      position: relative;
+      margin-bottom: 3px;
+    }
+
+    /* ── Day cells ── */
     .day-cell {
       background: #161b22;
       border: 1px solid #30363d;
       border-radius: 6px;
-      min-height: 62px;
+      min-height: 70px;
       position: relative;
       overflow: hidden;
       cursor: default;
     }
-    .day-cell.empty {
-      background: transparent;
-      border-color: transparent;
-    }
     .day-cell.other-month {
-      opacity: 0.35;
+      opacity: 0.2;
+      pointer-events: none;
     }
-    .day-cell.past .day-num {
-      color: #484f58;
+    .day-cell.past {
+      opacity: 0.5;
+    }
+    .day-cell.has-events {
+      cursor: pointer;
     }
 
     /* Full-bleed cell image */
@@ -129,44 +181,23 @@
       border-radius: 5px;
     }
 
-    /* Nurse strip in Full view when stacked */
-    .nurse-strip {
-      position: absolute;
-      top: 0; left: 0; right: 0;
-      height: 6px;
-      background: #f48fb1;
-      z-index: 2;
-    }
-
-    /* Custody bg color (no image fallback) */
-    .day-cell.dad-night { background: #e0f7fa; }
-    .day-cell.mom-night { background: #f3e5f5; }
-    .day-cell.nurse-only { background: #fce4ec; }
-
-    /* For dark cells with images, text needs shadow */
     .day-num {
       position: relative;
       z-index: 3;
       display: inline-block;
-      font-size: 0.7rem;
+      font-size: 0.68rem;
       font-weight: 600;
       color: #e6edf3;
-      margin: 4px 0 0 5px;
+      margin: 3px 0 0 4px;
       text-shadow: 0 1px 3px rgba(0,0,0,0.7);
       line-height: 1;
     }
-    .day-cell.dad-night .day-num,
-    .day-cell.mom-night .day-num,
-    .day-cell.nurse-only .day-num {
-      color: #1c2128;
-      text-shadow: none;
-    }
 
-    /* Today indicator */
+    /* Today dot */
     .today-dot {
       position: absolute;
-      top: 4px;
-      right: 5px;
+      top: 3px;
+      right: 4px;
       width: 7px;
       height: 7px;
       border-radius: 50%;
@@ -174,17 +205,42 @@
       z-index: 4;
     }
 
-    /* Family events */
-    .events-layer {
+    /* Icon row (full view) */
+    .icon-row {
       position: absolute;
-      bottom: 3px;
-      left: 3px;
-      right: 3px;
+      z-index: 3;
+      top: 50%;
+      left: 0;
+      right: 0;
+      transform: translateY(-30%);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 2px;
+    }
+    .icon-row img {
+      border-radius: 3px;
+      object-fit: cover;
+    }
+    .icon-row.single img {
+      width: 32px;
+      height: 32px;
+    }
+    .icon-row.double img {
+      width: 28px;
+      height: 28px;
+    }
+
+    /* Event chips (non-bar events in full view) */
+    .chips-layer {
+      position: absolute;
+      bottom: 2px;
+      left: 2px;
+      right: 2px;
       z-index: 4;
       display: flex;
       flex-direction: column;
       gap: 1px;
-      align-items: flex-start;
     }
     .event-chip {
       font-size: 0.6rem;
@@ -192,13 +248,123 @@
       line-height: 1.3;
       padding: 1px 3px;
       border-radius: 3px;
-      background: rgba(249,115,22,0.85);
       color: #fff;
       max-width: 100%;
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
-      backdrop-filter: blur(2px);
+    }
+
+    /* Bar event overlay */
+    .bar-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      pointer-events: none;
+      z-index: 5;
+    }
+    .bar-event {
+      position: absolute;
+      height: 14px;
+      border-radius: 3px;
+      overflow: hidden;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+      font-size: 0.58rem;
+      font-weight: 600;
+      color: #fff;
+      padding: 0 4px;
+      line-height: 14px;
+      pointer-events: none;
+    }
+
+    /* ── Nights view: totals ── */
+    .nights-totals {
+      display: flex;
+      gap: 12px;
+      justify-content: center;
+      padding: 16px 16px 0;
+      flex-wrap: wrap;
+    }
+    .nights-badge {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 14px;
+      border-radius: 999px;
+      font-size: 0.85rem;
+      font-weight: 600;
+    }
+    .nights-badge.mom { background: rgba(180, 140, 220, 0.25); border: 1px solid rgba(180,140,220,0.4); color: #d4aaff; }
+    .nights-badge.dad { background: rgba(100, 200, 220, 0.2); border: 1px solid rgba(100,200,220,0.4); color: #7fd6e8; }
+    .nights-badge img { width: 22px; height: 22px; border-radius: 3px; object-fit: cover; }
+
+    /* ── Nurse view: totals + list ── */
+    .nurse-total {
+      display: flex;
+      justify-content: center;
+      padding: 16px 16px 0;
+    }
+    .nurse-badge {
+      background: rgba(249, 115, 22, 0.2);
+      border: 1px solid rgba(249,115,22,0.4);
+      color: #fb923c;
+      padding: 6px 18px;
+      border-radius: 999px;
+      font-size: 0.9rem;
+      font-weight: 600;
+    }
+    .nurse-list {
+      padding: 12px 20px 0;
+      list-style: none;
+    }
+    .nurse-list li {
+      padding: 7px 0;
+      border-bottom: 1px solid #21262d;
+      font-size: 0.88rem;
+      color: #c9d1d9;
+    }
+    .nurse-list li:last-child { border-bottom: none; }
+
+    /* ── Event list (Full view) ── */
+    #event-list-section {
+      padding: 20px 14px 0;
+    }
+    .event-list-date-group {
+      margin-bottom: 18px;
+    }
+    .event-list-date-heading {
+      font-size: 0.8rem;
+      font-weight: 700;
+      color: #8b949e;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      margin-bottom: 6px;
+      padding-bottom: 4px;
+      border-bottom: 1px solid #21262d;
+    }
+    .event-list-item {
+      display: flex;
+      align-items: stretch;
+      gap: 8px;
+      padding: 5px 0;
+      border-radius: 4px;
+      transition: background 0.3s;
+    }
+    .event-list-item.highlight {
+      background: rgba(249,115,22,0.18);
+    }
+    .event-list-bar {
+      width: 4px;
+      border-radius: 2px;
+      flex-shrink: 0;
+    }
+    .event-list-title {
+      font-size: 0.88rem;
+      color: #e6edf3;
+      line-height: 1.4;
+      padding: 1px 0;
     }
 
     /* ── Loading / empty ── */
@@ -207,6 +373,7 @@
       justify-content: center;
       align-items: center;
       padding: 60px 0;
+      grid-column: 1 / -1;
     }
     .spinner {
       width: 32px;
@@ -223,38 +390,11 @@
       color: #8b949e;
       padding: 40px 16px;
       font-size: 0.9rem;
-    }
-
-    /* ── Legend ── */
-    .legend {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 12px;
-      justify-content: center;
-      padding: 20px 16px 0;
-    }
-    .legend-item {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      font-size: 0.75rem;
-      color: #8b949e;
-    }
-    .legend-swatch {
-      width: 14px;
-      height: 14px;
-      border-radius: 3px;
-      flex-shrink: 0;
-    }
-    .legend-dot {
-      width: 10px;
-      height: 10px;
-      border-radius: 50%;
-      flex-shrink: 0;
+      grid-column: 1 / -1;
     }
 
     @media (min-width: 480px) {
-      .day-cell { min-height: 72px; }
+      .day-cell { min-height: 82px; }
       header h1 { font-size: 1.5rem; }
     }
   </style>
@@ -263,21 +403,25 @@
 
 <header>
   <h1>Longo Family Calendar</h1>
-  <div class="tabs">
-    <button class="tab active" data-view="nurse" onclick="setView('nurse')">Nurse</button>
-    <button class="tab" data-view="nights" onclick="setView('nights')">Nights</button>
-    <button class="tab" data-view="full" onclick="setView('full')">Full</button>
-  </div>
+  <button id="camera-btn" aria-label="Save screenshot">📷</button>
 </header>
 
-<div class="month-nav">
-  <button onclick="changeMonth(-1)" aria-label="Previous month">&#8249;</button>
-  <h2 id="month-label"></h2>
-  <button onclick="changeMonth(1)" aria-label="Next month">&#8250;</button>
+<div id="saving-indicator">Saving…</div>
+
+<div class="tabs">
+  <button class="tab active" data-view="full">Full</button>
+  <button class="tab" data-view="nights">Nights</button>
+  <button class="tab" data-view="nurse">Nurse</button>
 </div>
 
-<div class="cal-wrap">
-  <div class="cal-grid" id="day-headers">
+<div class="month-nav">
+  <button id="prev-month" aria-label="Previous month">&#8249;</button>
+  <h2 id="month-label"></h2>
+  <button id="next-month" aria-label="Next month">&#8250;</button>
+</div>
+
+<div class="cal-wrap" id="cal-wrap">
+  <div class="day-headers">
     <div class="day-header">Sun</div>
     <div class="day-header">Mon</div>
     <div class="day-header">Tue</div>
@@ -286,27 +430,11 @@
     <div class="day-header">Fri</div>
     <div class="day-header">Sat</div>
   </div>
-  <div class="cal-grid" id="cal-body"></div>
+  <div id="cal-weeks"></div>
 </div>
 
-<div class="legend">
-  <div class="legend-item">
-    <div class="legend-swatch" style="background:#f3e5f5;border:1px solid #30363d"></div>
-    Mom's Night
-  </div>
-  <div class="legend-item">
-    <div class="legend-swatch" style="background:#e0f7fa;border:1px solid #30363d"></div>
-    Dad's Night
-  </div>
-  <div class="legend-item">
-    <div class="legend-swatch" style="background:#fce4ec;border:1px solid #30363d"></div>
-    Nurse Day
-  </div>
-  <div class="legend-item">
-    <div class="legend-dot" style="background:#f97316"></div>
-    Family Event / Today
-  </div>
-</div>
+<!-- Below-calendar content (view-specific) -->
+<div id="below-cal"></div>
 
 <script type="module">
   import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
@@ -315,30 +443,33 @@
   const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxhbWtma3N0c2Z1eXJuZmZpdGh0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI1MDMwMjIsImV4cCI6MjA5ODA3OTAyMn0.-AhMxeMiTdT1QWwNcNssDKDQ3EiKJfhYoqEkyAiak20';
   const supabase = createClient(SUPABASE_URL, SUPABASE_ANON);
 
-  // ── State ──────────────────────────────────────────────────────────────────
+  // ── State ──
   const now = new Date();
   let currentYear = now.getFullYear();
-  let currentMonth = now.getMonth(); // 0-indexed
-  let currentView = 'nurse';
-
-  // Cached data per month key "YYYY-MM"
+  let currentMonth = now.getMonth();
+  let currentView = 'full';
   const cache = {};
 
-  // ── Helpers ────────────────────────────────────────────────────────────────
+  // ── Helpers ──
   function pad(n) { return String(n).padStart(2, '0'); }
   function dateStr(y, m, d) { return `${y}-${pad(m+1)}-${pad(d)}`; }
   function todayStr() {
     const t = new Date();
     return dateStr(t.getFullYear(), t.getMonth(), t.getDate());
   }
-
   function monthKey(y, m) { return `${y}-${pad(m+1)}`; }
-
   function monthLabel(y, m) {
     return new Date(y, m, 1).toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
   }
+  function escHtml(s) {
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+  function fullDateLabel(ds) {
+    const [y, m, d] = ds.split('-').map(Number);
+    return new Date(y, m-1, d).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
+  }
 
-  // ── Data fetching ──────────────────────────────────────────────────────────
+  // ── Data ──
   async function fetchMonth(year, month) {
     const key = monthKey(year, month);
     if (cache[key]) return cache[key];
@@ -354,9 +485,7 @@
 
     const custody = {};
     (custRes.data || []).forEach(r => { custody[r.date] = r.custody; });
-
     const nurseDays = new Set((nurseRes.data || []).map(r => r.date));
-
     const events = eventsRes.data || [];
 
     const data = { custody, nurseDays, events };
@@ -364,190 +493,422 @@
     return data;
   }
 
-  // ── Render ─────────────────────────────────────────────────────────────────
-  function setView(v) {
-    currentView = v;
-    document.querySelectorAll('.tab').forEach(t => {
-      t.classList.toggle('active', t.dataset.view === v);
+  // ── View switching ──
+  document.querySelectorAll('.tab').forEach(btn => {
+    btn.addEventListener('click', () => {
+      currentView = btn.dataset.view;
+      document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.view === currentView));
+      renderCalendar();
     });
-    renderCalendar();
-  }
-  window.setView = setView;
+  });
 
+  // ── Month nav ──
   function changeMonth(delta) {
     currentMonth += delta;
     if (currentMonth > 11) { currentMonth = 0; currentYear++; }
     if (currentMonth < 0) { currentMonth = 11; currentYear--; }
     renderCalendar();
   }
-  window.changeMonth = changeMonth;
+  document.getElementById('prev-month').addEventListener('click', () => changeMonth(-1));
+  document.getElementById('next-month').addEventListener('click', () => changeMonth(1));
 
+  // ── Touch swipe on calendar ──
+  let touchStartX = null;
+  const calWrap = document.getElementById('cal-wrap');
+  calWrap.addEventListener('touchstart', e => { touchStartX = e.touches[0].clientX; }, { passive: true });
+  calWrap.addEventListener('touchend', e => {
+    if (touchStartX === null) return;
+    const dx = e.changedTouches[0].clientX - touchStartX;
+    touchStartX = null;
+    if (Math.abs(dx) >= 50) changeMonth(dx < 0 ? 1 : -1);
+  }, { passive: true });
+
+  // ── Main render ──
   async function renderCalendar() {
-    const body = document.getElementById('cal-body');
+    const weeksEl = document.getElementById('cal-weeks');
+    const belowEl = document.getElementById('below-cal');
     document.getElementById('month-label').textContent = monthLabel(currentYear, currentMonth);
 
-    // Show spinner
-    body.innerHTML = `<div style="grid-column:1/-1"><div class="spinner-wrap"><div class="spinner"></div></div></div>`;
+    weeksEl.innerHTML = `<div class="spinner-wrap"><div class="spinner"></div></div>`;
+    belowEl.innerHTML = '';
 
     let data;
     try {
       data = await fetchMonth(currentYear, currentMonth);
     } catch(e) {
-      body.innerHTML = `<div style="grid-column:1/-1"><p class="no-data">Failed to load data. Please try again.</p></div>`;
+      weeksEl.innerHTML = `<p class="no-data">Failed to load data. Please try again.</p>`;
       return;
     }
 
     const { custody, nurseDays, events } = data;
     const today = todayStr();
 
-    // Check if any data at all
-    const hasData = Object.keys(custody).length > 0 || nurseDays.size > 0 || events.length > 0;
+    // Build grid days (including leading/trailing other-month days to fill weeks)
+    const firstOfMonth = new Date(currentYear, currentMonth, 1);
+    const lastOfMonth = new Date(currentYear, currentMonth + 1, 0);
+    const startDow = firstOfMonth.getDay();
+    const daysInMonth = lastOfMonth.getDate();
+    const totalCells = Math.ceil((startDow + daysInMonth) / 7) * 7;
 
-    // Build day → events map
-    const eventsByDay = {};
-    events.forEach(ev => {
-      // Bar events span multiple days
-      const start = new Date(ev.start_date + 'T00:00:00');
-      const end = new Date(ev.end_date + 'T00:00:00');
-      const cur = new Date(start);
-      while (cur <= end) {
-        const ds = cur.toISOString().slice(0, 10);
-        if (!eventsByDay[ds]) eventsByDay[ds] = [];
-        eventsByDay[ds].push(ev);
+    // Build day data array
+    const days = [];
+    const prevMonthDays = new Date(currentYear, currentMonth, 0).getDate();
+    for (let i = 0; i < totalCells; i++) {
+      const offset = i - startDow;
+      if (offset < 0) {
+        // previous month
+        const d = prevMonthDays + offset + 1;
+        const prevM = currentMonth === 0 ? 11 : currentMonth - 1;
+        const prevY = currentMonth === 0 ? currentYear - 1 : currentYear;
+        days.push({ d, ds: dateStr(prevY, prevM, d), otherMonth: true });
+      } else if (offset >= daysInMonth) {
+        // next month
+        const d = offset - daysInMonth + 1;
+        const nextM = currentMonth === 11 ? 0 : currentMonth + 1;
+        const nextY = currentMonth === 11 ? currentYear + 1 : currentYear;
+        days.push({ d, ds: dateStr(nextY, nextM, d), otherMonth: true });
+      } else {
+        const d = offset + 1;
+        const ds = dateStr(currentYear, currentMonth, d);
+        days.push({
+          d, ds,
+          otherMonth: false,
+          isToday: ds === today,
+          isPast: ds < today,
+          custody: custody[ds],
+          isNurse: nurseDays.has(ds),
+        });
+      }
+    }
+
+    // Separate bar vs chip events
+    const barEvents = events.filter(ev => ev.is_bar);
+    const chipEvents = events.filter(ev => !ev.is_bar);
+
+    // Build chip event map by date
+    const chipsByDay = {};
+    chipEvents.forEach(ev => {
+      const start = ev.start_date;
+      const end = ev.end_date;
+      // iterate dates
+      let cur = new Date(start + 'T00:00:00');
+      const endD = new Date(end + 'T00:00:00');
+      while (cur <= endD) {
+        const ds = cur.toISOString().slice(0,10);
+        if (!chipsByDay[ds]) chipsByDay[ds] = [];
+        chipsByDay[ds].push(ev);
         cur.setDate(cur.getDate() + 1);
       }
     });
 
-    // Build calendar days
-    const firstOfMonth = new Date(currentYear, currentMonth, 1);
-    const lastOfMonth = new Date(currentYear, currentMonth + 1, 0);
-    const startDow = firstOfMonth.getDay(); // 0=Sun
-    const daysInMonth = lastOfMonth.getDate();
+    // Determine which days have family events (for click highlight)
+    const daysWithEvents = new Set();
+    events.forEach(ev => {
+      let cur = new Date(ev.start_date + 'T00:00:00');
+      const endD = new Date(ev.end_date + 'T00:00:00');
+      while (cur <= endD) {
+        daysWithEvents.add(cur.toISOString().slice(0,10));
+        cur.setDate(cur.getDate() + 1);
+      }
+    });
 
-    const cells = [];
+    // Build weeks
+    weeksEl.innerHTML = '';
+    const numWeeks = totalCells / 7;
 
-    // Leading empty cells
-    for (let i = 0; i < startDow; i++) {
-      cells.push({ empty: true });
+    for (let w = 0; w < numWeeks; w++) {
+      const weekDiv = document.createElement('div');
+      weekDiv.className = 'week-row';
+      weekDiv.dataset.week = w;
+
+      const weekDays = days.slice(w * 7, w * 7 + 7);
+
+      weekDays.forEach(day => {
+        const cell = document.createElement('div');
+        const classes = ['day-cell'];
+        if (day.otherMonth) classes.push('other-month');
+        else {
+          if (day.isPast) classes.push('past');
+          if (!day.otherMonth && daysWithEvents.has(day.ds) && currentView === 'full') classes.push('has-events');
+        }
+        cell.className = classes.join(' ');
+
+        let inner = '';
+
+        if (currentView === 'nights') {
+          if (!day.otherMonth && day.custody) {
+            const src = day.custody === 'dad' ? '/dad-night.jpg' : '/mom-night.jpg';
+            inner += `<img class="cell-img" src="${escHtml(src)}" alt="" />`;
+          }
+          inner += `<span class="day-num">${day.d}</span>`;
+          if (!day.otherMonth && day.isToday) inner += `<div class="today-dot"></div>`;
+
+        } else if (currentView === 'nurse') {
+          if (!day.otherMonth && day.isNurse) {
+            inner += `<img class="cell-img" src="/nurse-day.png" alt="" />`;
+          }
+          inner += `<span class="day-num">${day.d}</span>`;
+          if (!day.otherMonth && day.isToday) inner += `<div class="today-dot"></div>`;
+
+        } else {
+          // Full view
+          inner += `<span class="day-num">${day.d}</span>`;
+          if (!day.otherMonth && day.isToday) inner += `<div class="today-dot"></div>`;
+
+          if (!day.otherMonth) {
+            const hasCustody = !!day.custody;
+            const hasNurse = day.isNurse;
+
+            if (hasCustody || hasNurse) {
+              if (hasCustody && hasNurse) {
+                // Both icons side by side
+                const custSrc = day.custody === 'dad' ? '/dad-night.jpg' : '/mom-night.jpg';
+                inner += `<div class="icon-row double">
+                  <img src="${escHtml(custSrc)}" alt="" />
+                  <img src="/nurse-day.png" alt="" />
+                </div>`;
+              } else if (hasCustody) {
+                const custSrc = day.custody === 'dad' ? '/dad-night.jpg' : '/mom-night.jpg';
+                inner += `<div class="icon-row single"><img src="${escHtml(custSrc)}" alt="" /></div>`;
+              } else {
+                inner += `<div class="icon-row single"><img src="/nurse-day.png" alt="" /></div>`;
+              }
+            }
+
+            // Chip events for this day
+            const chips = chipsByDay[day.ds] || [];
+            if (chips.length > 0) {
+              inner += `<div class="chips-layer">`;
+              chips.slice(0, 2).forEach(ev => {
+                const bg = ev.color || '#f97316';
+                inner += `<div class="event-chip" style="background:${escHtml(bg)}">${escHtml(ev.title)}</div>`;
+              });
+              if (chips.length > 2) {
+                inner += `<div class="event-chip" style="background:#484f58">+${chips.length - 2}</div>`;
+              }
+              inner += `</div>`;
+            }
+          }
+
+          // Click to scroll to event list
+          if (!day.otherMonth && daysWithEvents.has(day.ds)) {
+            cell.addEventListener('click', () => scrollToEventDate(day.ds));
+          }
+        }
+
+        cell.innerHTML = inner;
+        weekDiv.appendChild(cell);
+      });
+
+      weeksEl.appendChild(weekDiv);
+
+      // Add bar event overlay for this week (full view only)
+      if (currentView === 'full') {
+        renderBarEventsForWeek(weekDiv, weekDays, barEvents);
+      }
     }
 
-    // Day cells
-    for (let d = 1; d <= daysInMonth; d++) {
-      const ds = dateStr(currentYear, currentMonth, d);
-      const isToday = ds === today;
-      const isPast = ds < today;
-      const custodyVal = custody[ds]; // 'mom' | 'dad' | undefined
-      const isNurse = nurseDays.has(ds);
-      const dayEvents = eventsByDay[ds] || [];
+    // Render below-calendar section
+    renderBelowCalendar(data);
+  }
 
-      cells.push({ d, ds, isToday, isPast, custodyVal, isNurse, dayEvents });
-    }
+  // ── Bar events overlay ──
+  function renderBarEventsForWeek(weekDiv, weekDays, barEvents) {
+    // We'll add bars after layout — use requestAnimationFrame to get cell widths
+    requestAnimationFrame(() => {
+      const overlay = document.createElement('div');
+      overlay.className = 'bar-overlay';
+      // height will be set after we know how many bar rows there are
+      weekDiv.style.position = 'relative';
+      weekDiv.appendChild(overlay);
 
-    if (!hasData) {
-      body.innerHTML = `<div style="grid-column:1/-1"><p class="no-data">No data synced yet.<br>Open FoxHole → Admin → Sync Family Calendar.</p></div>`;
-      return;
-    }
+      const cellWidth = weekDiv.offsetWidth / 7;
+      const gap = 3;
+      const BAR_HEIGHT = 14;
+      const BAR_TOP_OFFSET = 16; // below date numbers
+      const BAR_SPACING = 2;
 
-    body.innerHTML = '';
-    cells.forEach(cell => {
-      const el = document.createElement('div');
-      if (cell.empty) {
-        el.className = 'day-cell empty';
-        body.appendChild(el);
-        return;
-      }
+      // Find bar events that overlap this week
+      const weekStart = weekDays[0].ds;
+      const weekEnd = weekDays[6].ds;
 
-      const { d, ds, isToday, isPast, custodyVal, isNurse, dayEvents } = cell;
-      const classes = ['day-cell'];
-      if (isPast) classes.push('past');
+      const overlapping = barEvents.filter(ev => ev.start_date <= weekEnd && ev.end_date >= weekStart);
 
-      let showCustodyImg = false;
-      let showNurseImg = false;
-      let showNurseStrip = false;
-      let cellBgClass = '';
+      // Assign rows to avoid overlap (simple greedy)
+      const rowEndDate = {};
+      let maxRow = 0;
 
-      if (currentView === 'nurse') {
-        if (isNurse) {
-          showNurseImg = true;
-          classes.push('nurse-only');
-        }
-      } else if (currentView === 'nights') {
-        if (custodyVal === 'dad') {
-          showCustodyImg = true;
-          classes.push('dad-night');
-        } else if (custodyVal === 'mom') {
-          showCustodyImg = true;
-          classes.push('mom-night');
-        }
-      } else {
-        // Full view
-        if (isNurse && custodyVal) {
-          // Stacked: custody image fills cell, nurse strip at top
-          showCustodyImg = true;
-          showNurseStrip = true;
-          classes.push(custodyVal === 'dad' ? 'dad-night' : 'mom-night');
-        } else if (isNurse) {
-          showNurseImg = true;
-          classes.push('nurse-only');
-        } else if (custodyVal === 'dad') {
-          showCustodyImg = true;
-          classes.push('dad-night');
-        } else if (custodyVal === 'mom') {
-          showCustodyImg = true;
-          classes.push('mom-night');
-        }
-      }
+      overlapping.forEach(ev => {
+        // Clip to week
+        const clipStart = ev.start_date < weekStart ? weekStart : ev.start_date;
+        const clipEnd = ev.end_date > weekEnd ? weekEnd : ev.end_date;
 
-      el.className = classes.join(' ');
-      let inner = '';
+        const startIdx = weekDays.findIndex(d => d.ds === clipStart);
+        const endIdx = weekDays.findIndex(d => d.ds === clipEnd);
+        if (startIdx === -1 || endIdx === -1) return;
 
-      // Custody image
-      if (showCustodyImg) {
-        const imgSrc = custodyVal === 'dad' ? '/dad-night.jpg' : '/mom-night.jpg';
-        inner += `<img class="cell-img" src="${imgSrc}" alt="" onerror="this.style.display='none'" />`;
-      }
+        // Find a free row
+        let row = 0;
+        while (rowEndDate[row] !== undefined && rowEndDate[row] >= startIdx) row++;
+        rowEndDate[row] = endIdx;
+        if (row > maxRow) maxRow = row;
 
-      // Nurse image (only when not stacked)
-      if (showNurseImg) {
-        inner += `<img class="cell-img" src="/nurse-day.png" alt="" onerror="this.style.display='none'" />`;
-      }
+        const left = startIdx * (cellWidth + gap);
+        const width = (endIdx - startIdx + 1) * (cellWidth + gap) - gap;
+        const top = BAR_TOP_OFFSET + row * (BAR_HEIGHT + BAR_SPACING);
 
-      // Nurse strip (stacked full view)
-      if (showNurseStrip) {
-        inner += `<div class="nurse-strip"></div>`;
-      }
-
-      // Date number
-      inner += `<span class="day-num">${d}</span>`;
-
-      // Today dot
-      if (isToday) {
-        inner += `<div class="today-dot"></div>`;
-      }
-
-      // Events (full view only)
-      if (currentView === 'full' && dayEvents.length > 0) {
-        inner += `<div class="events-layer">`;
-        dayEvents.slice(0, 3).forEach(ev => {
-          const bg = ev.color ? ev.color + 'cc' : 'rgba(249,115,22,0.85)';
-          inner += `<div class="event-chip" style="background:${bg}">${escHtml(ev.title)}</div>`;
-        });
-        if (dayEvents.length > 3) {
-          inner += `<div class="event-chip" style="background:rgba(139,148,158,0.7)">+${dayEvents.length - 3} more</div>`;
-        }
-        inner += `</div>`;
-      }
-
-      el.innerHTML = inner;
-      body.appendChild(el);
+        const bar = document.createElement('div');
+        bar.className = 'bar-event';
+        bar.style.cssText = `left:${left}px;width:${width}px;top:${top}px;background:${ev.color || '#f97316'};`;
+        bar.textContent = ev.title;
+        overlay.appendChild(bar);
+      });
     });
   }
 
-  function escHtml(s) {
-    return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  // ── Below-calendar content ──
+  function renderBelowCalendar(data) {
+    const belowEl = document.getElementById('below-cal');
+    const { custody, nurseDays, events } = data;
+
+    if (currentView === 'nights') {
+      let momCount = 0, dadCount = 0;
+      const firstDay = dateStr(currentYear, currentMonth, 1);
+      const lastDay = dateStr(currentYear, currentMonth, new Date(currentYear, currentMonth + 1, 0).getDate());
+      Object.entries(custody).forEach(([ds, val]) => {
+        if (ds >= firstDay && ds <= lastDay) {
+          if (val === 'mom') momCount++;
+          else if (val === 'dad') dadCount++;
+        }
+      });
+      belowEl.innerHTML = `
+        <div class="nights-totals">
+          <div class="nights-badge mom">
+            <img src="/mom-night.jpg" alt="" />
+            Mom: ${momCount} nights
+          </div>
+          <div class="nights-badge dad">
+            <img src="/dad-night.jpg" alt="" />
+            Dad: ${dadCount} nights
+          </div>
+        </div>
+      `;
+      return;
+    }
+
+    if (currentView === 'nurse') {
+      const firstDay = dateStr(currentYear, currentMonth, 1);
+      const lastDay = dateStr(currentYear, currentMonth, new Date(currentYear, currentMonth + 1, 0).getDate());
+      const sorted = [...nurseDays].filter(ds => ds >= firstDay && ds <= lastDay).sort();
+      belowEl.innerHTML = `
+        <div class="nurse-total">
+          <div class="nurse-badge">Nurse Days This Month: ${sorted.length}</div>
+        </div>
+        <ul class="nurse-list">
+          ${sorted.map(ds => `<li>${fullDateLabel(ds)}</li>`).join('')}
+        </ul>
+      `;
+      return;
+    }
+
+    // Full view: event list
+    if (currentView === 'full') {
+      const firstDay = dateStr(currentYear, currentMonth, 1);
+      const lastDay = dateStr(currentYear, currentMonth, new Date(currentYear, currentMonth + 1, 0).getDate());
+
+      // Only events that start in this month (or start before but are ongoing — show under start date if it's in month, else show under month's first day)
+      const monthEvents = events.filter(ev => ev.start_date <= lastDay && ev.end_date >= firstDay);
+
+      if (monthEvents.length === 0) {
+        belowEl.innerHTML = '';
+        return;
+      }
+
+      // Group by effective start date (clamped to first of month if started earlier)
+      const grouped = {};
+      monthEvents.forEach(ev => {
+        const key = ev.start_date >= firstDay ? ev.start_date : firstDay;
+        if (!grouped[key]) grouped[key] = [];
+        grouped[key].push(ev);
+      });
+
+      const sortedDates = Object.keys(grouped).sort();
+      let html = `<div id="event-list-section">`;
+      sortedDates.forEach(ds => {
+        html += `<div class="event-list-date-group" data-date="${escHtml(ds)}">`;
+        html += `<div class="event-list-date-heading">${fullDateLabel(ds)}</div>`;
+        grouped[ds].forEach(ev => {
+          const color = ev.color || '#f97316';
+          html += `<div class="event-list-item" data-event-date="${escHtml(ds)}">
+            <div class="event-list-bar" style="background:${escHtml(color)}"></div>
+            <div class="event-list-title">${escHtml(ev.title)}</div>
+          </div>`;
+        });
+        html += `</div>`;
+      });
+      html += `</div>`;
+      belowEl.innerHTML = html;
+    }
   }
 
-  // ── Boot ───────────────────────────────────────────────────────────────────
+  function scrollToEventDate(ds) {
+    const group = document.querySelector(`[data-date="${ds}"]`);
+    if (!group) return;
+    group.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    // Flash highlight on items
+    const items = group.querySelectorAll('.event-list-item');
+    items.forEach(item => {
+      item.classList.add('highlight');
+      setTimeout(() => item.classList.remove('highlight'), 500);
+    });
+  }
+
+  // ── Camera / Screenshot ──
+  document.getElementById('camera-btn').addEventListener('click', async () => {
+    const indicator = document.getElementById('saving-indicator');
+    indicator.style.display = 'block';
+    try {
+      // Lazy-load html2canvas
+      if (!window.html2canvas) {
+        await new Promise((resolve, reject) => {
+          const s = document.createElement('script');
+          s.src = 'https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js';
+          s.onload = resolve;
+          s.onerror = reject;
+          document.head.appendChild(s);
+        });
+      }
+      const gridEl = document.getElementById('cal-weeks');
+      const canvas = await window.html2canvas(gridEl, { backgroundColor: '#0d1117', scale: 2, useCORS: true });
+      canvas.toBlob(async (blob) => {
+        const file = new File([blob], 'longo-calendar.png', { type: 'image/png' });
+        if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+          try {
+            await navigator.share({ files: [file], title: 'Longo Family Calendar' });
+          } catch (shareErr) {
+            if (shareErr.name !== 'AbortError') fallbackDownload(blob);
+          }
+        } else {
+          fallbackDownload(blob);
+        }
+        indicator.style.display = 'none';
+      }, 'image/png');
+    } catch(e) {
+      indicator.style.display = 'none';
+      alert('Could not capture screenshot: ' + e.message);
+    }
+  });
+
+  function fallbackDownload(blob) {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'longo-calendar.png';
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 5000);
+  }
+
+  // ── Boot ──
   renderCalendar();
 </script>
 </body>
