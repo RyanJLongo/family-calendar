@@ -813,6 +813,30 @@
     setTimeout(() => URL.revokeObjectURL(url), 5000);
   }
 
+  // ── Live updates ──
+  // FoxHole edits re-sync the family_* tables instantly via DB triggers;
+  // subscribe so open pages refresh without a manual reload.
+  function refreshAll() {
+    Object.keys(cache).forEach(k => delete cache[k]);
+    renderCalendar();
+  }
+  let liveRefreshTimer = null;
+  function scheduleLiveRefresh() {
+    clearTimeout(liveRefreshTimer);
+    liveRefreshTimer = setTimeout(refreshAll, 800);
+  }
+  supabase.channel('family-live')
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'family_custody' }, scheduleLiveRefresh)
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'family_nurse_days' }, scheduleLiveRefresh)
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'family_events' }, scheduleLiveRefresh)
+    .subscribe();
+
+  // Also refetch when the page comes back to the foreground (phones drop the
+  // websocket while backgrounded, so changes made meanwhile would be missed).
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden) refreshAll();
+  });
+
   renderCalendar();
 </script>
 </body>
