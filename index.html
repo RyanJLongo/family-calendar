@@ -826,10 +826,12 @@
     liveRefreshTimer = setTimeout(refreshAll, 800);
   }
   supabase.channel('family-live')
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'family_custody' }, scheduleLiveRefresh)
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'family_nurse_days' }, scheduleLiveRefresh)
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'family_events' }, scheduleLiveRefresh)
+    .on('broadcast', { event: 'sync' }, scheduleLiveRefresh)
     .subscribe();
+
+  // Fallback: refetch every 5 minutes while the page is visible, in case the
+  // websocket drops silently.
+  setInterval(() => { if (!document.hidden) refreshAll(); }, 5 * 60 * 1000);
 
   // Also refetch when the page comes back to the foreground (phones drop the
   // websocket while backgrounded, so changes made meanwhile would be missed).
