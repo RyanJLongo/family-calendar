@@ -1,7 +1,0 @@
-{
-  "name": "family-calendar",
-  "private": true,
-  "dependencies": {
-    "@vercel/og": "^0.6.3"
-  }
-}
