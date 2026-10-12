@@ -4,7 +4,7 @@
 # static site, so Friday's texted link previews the fresh image.
 set -e
 cd "$(dirname "$0")"
-/usr/local/bin/node render.mjs 2>/dev/null || node render.mjs
+"/Users/ryanlongo/.nvm/versions/node/v22.22.3/bin/node" render.mjs
 cd ../..
 if ! git diff --quiet og.png; then
   git add og.png
