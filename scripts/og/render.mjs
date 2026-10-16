@@ -64,12 +64,12 @@ const tile = (d, i) =>
   h('div', {
     display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
     position: 'relative',
-    width: 148, height: 192, borderRadius: 18, margin: 5,
+    width: 141, height: 178, borderRadius: 16, margin: 5,
     background: d.who === 'mom' ? 'rgba(180,140,220,0.28)' : d.who === 'dad' ? 'rgba(100,200,220,0.22)' : 'rgba(255,255,255,0.05)',
     border: `2px solid ${d.who === 'mom' ? 'rgba(180,140,220,0.5)' : d.who === 'dad' ? 'rgba(100,200,220,0.5)' : 'rgba(255,255,255,0.08)'}`,
   },
     h('div', { display: 'flex', fontSize: 24, color: '#9aa3b2', textTransform: 'uppercase', letterSpacing: 2 }, d.wd),
-    h('div', { display: 'flex', fontSize: 60, fontWeight: 700, color: '#ffffff', lineHeight: 1.12 }, String(d.num)),
+    h('div', { display: 'flex', fontSize: 54, fontWeight: 700, color: '#ffffff', lineHeight: 1.12 }, String(d.num)),
     h('div', { display: 'flex', fontSize: 19, color: '#6b7484', marginBottom: 8 }, d.mon),
     h('div', {
       display: 'flex', fontSize: 23, fontWeight: 700, letterSpacing: 2, padding: '3px 16px', borderRadius: 999,
@@ -84,7 +84,7 @@ const legendDot = (color) => h('div', { display: 'flex', width: 20, height: 20, 
 const svg = await satori(
   h('div', {
     display: 'flex', flexDirection: 'column', width: '1200px', height: '630px',
-    background: '#11141b', padding: '34px 40px 24px', fontFamily: 'Inter', justifyContent: 'space-between',
+    background: '#11141b', padding: '46px 70px 42px', fontFamily: 'Inter', justifyContent: 'space-between',
   },
     h('div', { display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 16 },
       h('div', { display: 'flex', fontSize: 40, fontWeight: 700, color: '#ffffff' }, 'Longo Family Calendar'),
